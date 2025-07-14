@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+
+{% block title %}New Sale - Inventory Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-search-result {
+        cursor: pointer;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+    }
+    .product-search-result:hover {
+        background-color: #f8f9fa;
+    }
+    #searchResults {
+        position: absolute;
+        z-index: 1000;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        display: none;
+    }
+    #cartItems tr:not(.empty-row) {
+        cursor: pointer;
+    }
+    #cartItems tr:not(.empty-row):hover {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <h1 class="h2">New Sale</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('sales') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sales
+        </a>
+    </div>
+</div>
+
+<!-- Alert for success/error messages -->
+<div id="saleAlert" class="alert d-none mb-3" role="alert">
+    <!-- Messages will be inserted here by JavaScript -->
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="position-relative">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchProduct" placeholder="Search products by name or ID..." autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price (₹)</th>
+                                <th>In Stock</th>
+                                <th>Qty</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList">
+                            <!-- Product list will be populated by JavaScript -->
+                            <tr class="empty-row">
+                                <td colspan="5" class="text-center text-muted">
+                                    Search for products to add to cart
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Cart</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price (₹)</th>
+                                <th>Qty</th>
+                                <th>Total (₹)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartItems">
+                            <!-- Cart items will be populated by JavaScript -->
+                            <tr class="empty-row" id="emptyCart">
+                                <td colspan="5" class="text-center text-muted">
+                                    Your cart is empty
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <form id="saleForm" method="POST" action="{{ url_for('new_sale') }}">
+                    <input type="hidden" name="customer_id" id="customerId" required>
+                    
+                    <div class="mb-3">
+                        <label for="customerSearch" class="form-label">Customer <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="customerSearch" placeholder="Search customer..." required>
+                        <div class="form-text">
+                            <a href="{{ url_for('add_customer') }}" target="_blank">Add New Customer</a>
+                        </div>
+                        <div id="customerSearchResults" class="mt-2 d-none">
+                            <!-- Customer search results will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="cashPayment" value="cash" checked>
+                            <label class="form-check-label" for="cashPayment">
+                                Cash
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="chequePayment" value="cheque">
+                            <label class="form-check-label" for="chequePayment">
+                                Cheque
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="chequeDetails" style="display: none;">
+                        <div class="mb-2">
+                            <label for="chequeNumber" class="form-label">Cheque Number</label>
+                            <input type="text" class="form-control" id="chequeNumber" name="cheque_number">
+                        </div>
+                        <div class="mb-2">
+                            <label for="bankName" class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" id="bankName" name="bank_name">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amountPaid" class="form-label">Amount Paid (₹) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="amountPaid" name="amount_paid" value="0.00" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax (10%):</span>
+                            <span id="tax">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 fw-bold">
+                            <span>Total:</span>
+                            <span id="total">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 fw-bold text-danger">
+                            <span>Balance Due:</span>
+                            <span id="balance">₹0.00</span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="completeSaleBtn" disabled>
+                            <i class="bi bi-check-circle"></i> Complete Sale
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle cheque details based on payment method
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const chequeDetails = document.getElementById('chequeDetails');
+                if (this.value === 'cheque') {
+                    chequeDetails.style.display = 'block';
+                } else {
+                    chequeDetails.style.display = 'none';
+                }
+            });
+        });
+        
+        // Customer search functionality
+        const customerSearch = document.getElementById('customerSearch');
+        const customerSearchResults = document.getElementById('customerSearchResults');
+        const customerIdInput = document.getElementById('customerId');
+        let customerSearchTimeout;
+        
+        customerSearch.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            
+            // Clear any previous timeout
+            clearTimeout(customerSearchTimeout);
+            
+            if (searchTerm.length < 2) {
+                customerSearchResults.classList.add('d-none');
+                return;
+            }
+            
+            // Show loading state
+            customerSearchResults.innerHTML = '<div class="text-muted p-2">Searching...</div>';
+            customerSearchResults.classList.remove('d-none');
+            
+            // Debounce the search
+            customerSearchTimeout = setTimeout(() => {
+                fetch(`/api/customers/search?q=${encodeURIComponent(searchTerm)}`)
+                    .then(response => response.json())
+                    .then(customers => {
+                        if (customers.length > 0) {
+                            let html = '<div class="list-group">';
+                            customers.forEach(customer => {
+                                html += `
+                                    <a href="#" class="list-group-item list-group-item-action" 
+                                       data-id="${customer.id}" 
+                                       onclick="selectCustomer(event, ${customer.id}, '${customer.name.replace(/'/g, "\\'")}')">
+                                        ${customer.name}
+                                        <small class="text-muted d-block">${customer.phone || 'No phone'}</small>
+                                    </a>
+                                `;
+                            });
+                            html += '</div>';
+                            customerSearchResults.innerHTML = html;
+                        } else {
+                            customerSearchResults.innerHTML = '<div class="text-muted p-2">No customers found</div>';
+                        }
+                        customerSearchResults.classList.remove('d-none');
+                    })
+                    .catch(error => {
+                        console.error('Error searching customers:', error);
+                        customerSearchResults.innerHTML = '<div class="text-danger p-2">Error searching customers. Please try again.</div>';
+                        customerSearchResults.classList.remove('d-none');
+                    });
+            }, 300);
+        });
+        
+        // Close customer search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!customerSearch.contains(e.target) && !customerSearchResults.contains(e.target)) {
+                customerSearchResults.classList.add('d-none');
+            }
+        });
+        
+        // Product search functionality
+        const searchProduct = document.getElementById('searchProduct');
+        const productList = document.getElementById('productList');
+        
+        searchProduct.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchProducts();
+            }
+        });
+        
+        document.getElementById('searchBtn').addEventListener('click', searchProducts);
+        
+        // Search products when typing
+        const searchInput = document.getElementById('searchProduct');
+        const searchResults = document.getElementById('searchResults');
+        const productListElement = document.getElementById('productList');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                productListElement.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="5" class="text-center text-muted">
+                            Enter at least 2 characters to search
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => searchProducts(query), 300);
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        function searchProducts(query) {
+            fetch(`/api/products/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(products => {
+                    if (products.length > 0) {
+                        let html = '';
+                        products.forEach(product => {
+                            html += `
+                                <tr>
+                                    <td>${product.name}</td>
+                                    <td>₹${parseFloat(product.price).toFixed(2)}</td>
+                                    <td>${product.quantity}</td>
+                                    <td style="width: 120px;">
+                                        <div class="input-group input-group-sm">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="updateQty('qty-${product.id}', -1, ${product.quantity})">-</button>
+                                            <input type="number" class="form-control text-center" 
+                                                id="qty-${product.id}" 
+                                                value="1" 
+                                                min="1" 
+                                                max="${product.quantity}"
+                                                onchange="validateQty(this, ${product.quantity})">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="updateQty('qty-${product.id}', 1, ${product.quantity})">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="addToCart(${product.id}, '${product.name.replace(/'/g, "\\'")}', ${product.price}, ${product.quantity})">
+                                            <i class="bi bi-plus-lg"></i> Add
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        productListElement.innerHTML = html;
+                    } else {
+                        productListElement.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No products found. Try a different search term.
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching products:', error);
+                    productListElement.innerHTML = `
+                        <tr class="error-row">
+                            <td colspan="5" class="text-center text-danger">
+                                Error loading products. Please try again.
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+        
+        // Helper functions for quantity controls
+        window.updateQty = function(inputId, change, max) {
+            const input = document.getElementById(inputId);
+            let newQty = parseInt(input.value) + change;
+            if (newQty < 1) newQty = 1;
+            if (newQty > max) newQty = max;
+            input.value = newQty;
+        };
+        
+        window.validateQty = function(input, max) {
+            let value = parseInt(input.value) || 1;
+            if (value < 1) value = 1;
+            if (value > max) value = max;
+            input.value = value;
+        };
+        
+        // Cart functionality
+        window.addToCart = function(productId, productName, price, maxQty) {
+            const qtyInput = document.getElementById(`qty-${productId}`);
+            const quantity = parseInt(qtyInput.value) || 1;
+            
+            if (quantity < 1) {
+                alert('Quantity must be at least 1');
+                return;
+            }
+            
+            if (quantity > maxQty) {
+                alert(`Only ${maxQty} items available in stock`);
+                qtyInput.value = maxQty;
+                return;
+            }
+            
+            // Check if product already in cart
+            const existingItem = document.querySelector(`#cartItems tr[data-product-id="${productId}"]`);
+            
+            if (existingItem) {
+                // Update existing item
+                const currentQty = parseInt(existingItem.dataset.quantity);
+                const newQty = currentQty + quantity;
+                
+                if (newQty > maxQty) {
+                    alert(`Only ${maxQty - currentQty} more items available in stock`);
+                    return;
+                }
+                
+                existingItem.dataset.quantity = newQty;
+                existingItem.querySelector('.item-qty').textContent = newQty;
+                existingItem.querySelector('.item-total').textContent = `₹${(price * newQty).toFixed(2)}`;
+            } else {
+                // Add new item to cart
+                const emptyCart = document.getElementById('emptyCart');
+                if (emptyCart) emptyCart.remove();
+                
+                const newRow = document.createElement('tr');
+                newRow.dataset.productId = productId;
+                newRow.dataset.quantity = quantity;
+                newRow.dataset.price = price;
+                
+                newRow.innerHTML = `
+                    <td>${productName}</td>
+                    <td>₹${price.toFixed(2)}</td>
+                    <td class="item-qty">${quantity}</td>
+                    <td class="item-total">₹${(price * quantity).toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(this, ${productId})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                document.getElementById('cartItems').appendChild(newRow);
+            }
+            
+            // Update order summary
+            updateOrderSummary();
+            
+            // Reset quantity input
+            qtyInput.value = 1;
+        };
+        
+        window.removeFromCart = function(button, productId) {
+            const row = button.closest('tr');
+            row.remove();
+            
+            // If cart is empty, show empty message
+            if (document.getElementById('cartItems').children.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.id = 'emptyCart';
+                emptyRow.innerHTML = `
+                    <td colspan="5" class="text-center text-muted">
+                        Your cart is empty
+                    </td>
+                `;
+                document.getElementById('cartItems').appendChild(emptyRow);
+            }
+            
+            // Update order summary
+            updateOrderSummary();
+        };
+        
+        function updateOrderSummary() {
+            const rows = document.querySelectorAll('#cartItems tr:not(#emptyCart)');
+            let subtotal = 0;
+            
+            rows.forEach(row => {
+                const price = parseFloat(row.dataset.price);
+                const quantity = parseInt(row.dataset.quantity);
+                subtotal += price * quantity;
+            });
+            
+            // Calculate tax (10% of subtotal)
+            const taxRate = 0.1;
+            const tax = subtotal * taxRate;
+            const total = subtotal + tax;
+            
+            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('tax').textContent = `₹${tax.toFixed(2)}`;
+            document.getElementById('total').textContent = `₹${total.toFixed(2)}`;
+            
+            const amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
+            const balance = total - amountPaid;
+            
+            document.getElementById('balance').textContent = `₹${balance.toFixed(2)}`;
+            
+            // Enable/disable complete sale button
+            document.getElementById('completeSaleBtn').disabled = rows.length === 0 || customerIdInput.value === '';
+        }
+        
+        // Update balance when amount paid changes
+        document.getElementById('amountPaid').addEventListener('input', function() {
+            updateOrderSummary();
+        });
+        
+        // Handle form submission
+        document.getElementById('saleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Disable submit button and show loading state
+            const submitBtn = document.getElementById('completeSaleBtn');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            
+            // Hide any previous alerts
+            const alertDiv = document.getElementById('saleAlert');
+            alertDiv.classList.add('d-none');
+            
+            try {
+                // Get form data
+                const formData = new FormData(this);
+                const customerId = formData.get('customer_id');
+                const paymentMethod = formData.get('payment_method');
+                const amountPaid = parseFloat(formData.get('amount_paid') || 0);
+                const chequeNumber = formData.get('cheque_number') || '';
+                const bankName = formData.get('bank_name') || '';
+                
+                // Basic validation
+                if (!customerId) {
+                    throw new Error('Please select a customer');
+                }
+                
+                if (isNaN(amountPaid) || amountPaid < 0) {
+                    throw new Error('Please enter a valid amount');
+                }
+                
+                // Prepare the sale data
+                const saleData = {
+                    customer_id: parseInt(customerId),
+                    payment_method: paymentMethod,
+                    amount_paid: amountPaid,
+                    items: [],
+                    cheque_number: paymentMethod === 'cheque' ? chequeNumber : '',
+                    bank_name: paymentMethod === 'cheque' ? bankName : ''
+                };
+                
+                // Add cart items
+                const cartRows = document.querySelectorAll('#cartItems tr:not(#emptyCart)');
+                if (cartRows.length === 0) {
+                    throw new Error('Please add at least one item to the cart');
+                }
+                
+                cartRows.forEach(row => {
+                    saleData.items.push({
+                        product_id: parseInt(row.dataset.productId),
+                        quantity: parseInt(row.dataset.quantity),
+                        price: parseFloat(row.dataset.price)
+                    });
+                });
+                
+                // Make the API request
+                const response = await fetch('/sale/new', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(saleData)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Error processing sale');
+                }
+                
+                if (result.success) {
+                    // Show success message and redirect
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.textContent = 'Sale completed successfully! Redirecting...';
+                    alertDiv.classList.remove('d-none');
+                    
+                    // Redirect to receipt page
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        window.location.href = '/sales';
+                    }
+                } else {
+                    throw new Error(result.message || 'Error processing sale');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                // Show error message
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.textContent = error.message || 'An error occurred while processing the sale. Please try again.';
+                alertDiv.classList.remove('d-none');
+                
+                // Scroll to alert
+                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+    });
+    
+    // These functions need to be in the global scope to be accessible from HTML
+    window.selectCustomer = function(event, customerId, customerName) {
+        event.preventDefault();
+        document.getElementById('customerId').value = customerId;
+        document.getElementById('customerSearch').value = customerName;
+        document.getElementById('customerSearchResults').classList.add('d-none');
+        
+        // Enable complete sale button if cart is not empty
+        const cartItems = document.querySelectorAll('#cartItems tr:not(#emptyCart)');
+        if (cartItems.length > 0) {
+            document.getElementById('completeSaleBtn').disabled = false;
+        }
+    };
+</script>
+{% endblock %}

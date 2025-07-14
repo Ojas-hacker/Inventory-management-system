@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Record Payment - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <h1 class="h2">Record Payment</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('balance_sheet') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Balance Sheet
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_payment') }}">
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer <span class="text-danger">*</span></label>
+                        <select class="form-select" id="customer_id" name="customer_id" required>
+                            <option value="" selected disabled>Select a customer</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" {% if customer.id == customer_id|int %}selected{% endif %}>
+                                {{ customer.name }} (Balance: ₹{{ "%.2f"|format(customer.balance) }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="amount" name="amount" required>
+                        </div>
+                        <div class="form-text">Outstanding balance: <span id="outstandingBalance">₹0.00</span></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="cash" value="cash" checked>
+                            <label class="form-check-label" for="cash">
+                                Cash
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="cheque" value="cheque">
+                            <label class="form-check-label" for="cheque">
+                                Cheque
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="chequeDetails" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="cheque_number" class="form-label">Cheque Number</label>
+                                <input type="text" class="form-control" id="cheque_number" name="cheque_number">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="bank_name" class="form-label">Bank Name</label>
+                                <input type="text" class="form-control" id="bank_name" name="bank_name">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Record Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle cheque details based on payment method
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const chequeDetails = document.getElementById('chequeDetails');
+                if (this.value === 'cheque') {
+                    chequeDetails.style.display = 'block';
+                } else {
+                    chequeDetails.style.display = 'none';
+                }
+            });
+        });
+        
+        // Update outstanding balance when customer changes
+        const customerSelect = document.getElementById('customer_id');
+        const amountInput = document.getElementById('amount');
+        const outstandingBalanceSpan = document.getElementById('outstandingBalance');
+        
+        // Store customer balances in a map for quick lookup
+        const customerBalances = {};
+        {% for customer in customers %}
+        customerBalances[{{ customer.id }}] = {{ customer.balance }};
+        {% endfor %}
+        
+        function updateOutstandingBalance() {
+            const customerId = customerSelect.value;
+            if (customerId && customerBalances[customerId] !== undefined) {
+                const balance = customerBalances[customerId];
+                outstandingBalanceSpan.textContent = '₹' + balance.toFixed(2);
+                
+                // Set max amount to the outstanding balance
+                amountInput.max = balance;
+                
+                // If the current amount is more than the balance, adjust it
+                if (parseFloat(amountInput.value) > balance) {
+                    amountInput.value = balance.toFixed(2);
+                }
+            } else {
+                outstandingBalanceSpan.textContent = '₹0.00';
+            }
+        }
+        
+        customerSelect.addEventListener('change', updateOutstandingBalance);
+        
+        // Initialize the outstanding balance if a customer is pre-selected
+        if (customerSelect.value) {
+            updateOutstandingBalance();
+        }
+        
+        // Prevent form submission if amount is more than outstanding balance
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const customerId = customerSelect.value;
+            const amount = parseFloat(amountInput.value);
+            const balance = customerBalances[customerId] || 0;
+            
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Amount must be greater than zero');
+                return false;
+            }
+            
+            if (amount > balance) {
+                e.preventDefault();
+                alert('Payment amount cannot exceed the outstanding balance');
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %}

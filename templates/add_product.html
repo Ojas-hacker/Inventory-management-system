@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% if product %}
+    {% set title = 'Edit Product' %}
+    {% set button_text = 'Update Product' %}
+    {% set form_action = url_for('edit_product', product_id=product.id) %}
+{% else %}
+    {% set title = 'Add New Product' %}
+    {% set button_text = 'Save Product' %}
+    {% set form_action = url_for('add_product') %}
+{% endif %}
+
+{% block title %}{{ title }} - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <h1 class="h2">{{ title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Products
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ form_action }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Product Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ product.name if product else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="price" class="form-label">Price (₹)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" min="0" class="form-control" id="price" name="price" value="{{ '%.2f'|format(product.price) if product else '0.00' }}" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="quantity" class="form-label">Initial Quantity</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ product.quantity if product else '0' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="min_stock" class="form-label">Minimum Stock Level</label>
+                    <input type="number" class="form-control" id="min_stock" name="min_stock" min="1" value="{{ product.min_stock if product else '5' }}">
+                    <div class="form-text">System will alert when stock falls below this level</div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="reset" class="btn btn-outline-secondary me-md-2">
+                    <i class="bi bi-x-circle"></i> Reset
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> {{ button_text }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any JavaScript for form validation here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Example: Ensure price is positive
+        document.getElementById('price').addEventListener('change', function() {
+            if (this.value < 0) {
+                this.value = 0;
+            }
+        });
+        
+        // Ensure quantity is not negative
+        document.getElementById('quantity').addEventListener('change', function() {
+            if (this.value < 0) {
+                this.value = 0;
+            }
+        });
+    });
+</script>
+{% endblock %}

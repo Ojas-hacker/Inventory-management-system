@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Total Products</h6>
+                        <h2 class="mb-0">{{ total_products }}</h2>
+                    </div>
+                    <i class="bi bi-box-seam" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Total Customers</h6>
+                        <h2 class="mb-0">{{ total_customers }}</h2>
+                    </div>
+                    <i class="bi bi-people" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Today's Sales</h6>
+                        <h2 class="mb-0">₹{{ "%.2f"|format(daily_sales) }}</h2>
+                    </div>
+                    <i class="bi bi-cash-coin" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Low Stock Items</h6>
+                        <h2 class="mb-0">{{ low_stock_products|length }}</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Low Stock Items -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Low Stock Items</h5>
+                <a href="{{ url_for('products') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if low_stock_products %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>In Stock</th>
+                                <th>Min Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in low_stock_products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td class="text-danger fw-bold">{{ product.quantity }}</td>
+                                <td>{{ product.min_stock }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted mb-0">No low stock items</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Sales</h5>
+                <a href="{{ url_for('sales') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.id }}</td>
+                                <td>{{ sale.customer.name }}</td>
+                                <td>₹{{ "%.2f"|format(sale.total_amount) }}</td>
+                                <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted mb-0">No recent sales</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

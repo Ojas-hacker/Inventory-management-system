@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt #{{ sale.id }} - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Sale Receipt</h4>
+                        <div class="btn-group">
+                            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-printer"></i> Print
+                            </button>
+                            <a href="{{ url_for('sales') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> Back to Sales
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Receipt Header -->
+                    <div class="text-center mb-4">
+                        <h2>Your Business Name</h2>
+                        <p class="mb-1">123 Business Street, City</p>
+                        <p class="mb-1">Phone: (123) 456-7890 | Email: contact@yourbusiness.com</p>
+                        <p class="mb-0">GSTIN: 12ABCDE3456F7Z8</p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Receipt Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Bill To:</h6>
+                            <p class="mb-1"><strong>{{ sale.customer.name }}</strong></p>
+                            {% if sale.customer.phone %}
+                            <p class="mb-1">Phone: {{ sale.customer.phone }}</p>
+                            {% endif %}
+                            {% if sale.customer.email %}
+                            <p class="mb-1">Email: {{ sale.customer.email }}</p>
+                            {% endif %}
+                            {% if sale.customer.gst_number %}
+                            <p class="mb-1">GSTIN: {{ sale.customer.gst_number }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-1"><strong>Receipt #:</strong> {{ '%05d' % sale.id }}</p>
+                            <p class="mb-1"><strong>Date:</strong> {{ sale.date.strftime('%d/%m/%Y %I:%M %p') }}</p>
+                            <p class="mb-1"><strong>Payment Method:</strong> {{ sale.payment_method|title }}</p>
+                            {% if sale.payment_method == 'cheque' and sale.cheque_details %}
+                            <p class="mb-1"><strong>Cheque #:</strong> {{ sale.cheque_details.cheque_number }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Items Table -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Item</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in sale.sale_items %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.product.name }}</td>
+                                    <td class="text-end">₹{{ '%.2f'|format(item.price) }}</td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end">₹{{ '%.2f'|format(item.price * item.quantity) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end">₹{{ '%.2f'|format(sale.total_amount) }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Tax (10%):</strong></td>
+                                    <td class="text-end">₹{{ '%.2f'|format(sale.total_amount * 0.1) }}</td>
+                                </tr>
+                                <tr class="table-active">
+                                    <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                                    <td class="text-end"><strong>₹{{ '%.2f'|format(sale.total_amount * 1.1) }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Amount Paid:</strong></td>
+                                    <td class="text-end">₹{{ '%.2f'|format(sale.amount_paid) }}</td>
+                                </tr>
+                                <tr class="table-{% if sale.balance > 0 %}warning{% else %}success{% endif %}">
+                                    <td colspan="4" class="text-end">
+                                        <strong>{% if sale.balance > 0 %}Balance Due:{% else %}Change:{% endif %}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>₹{{ '%.2f'|format(sale.balance|abs) }}</strong>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <!-- Terms & Conditions -->
+                    <div class="border-top pt-3">
+                        <h6>Terms & Conditions:</h6>
+                        <ul class="small text-muted mb-0">
+                            <li>Goods sold are not returnable unless specified.</li>
+                            <li>Warranty as per manufacturer's terms and conditions.</li>
+                            <li>Please retain this receipt for warranty claims.</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Thank You Note -->
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Thank you for your business!</p>
+                        <p class="mb-0">For any queries, please contact our customer service.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Styles -->
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .card, .card * {
+            visibility: visible;
+        }
+        .card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none;
+            box-shadow: none;
+        }
+        .btn-group {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

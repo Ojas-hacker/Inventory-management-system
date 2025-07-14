@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Customer - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <h1 class="h2">Edit Customer</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Customers
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('edit_customer', customer_id=customer.id) }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ customer.name }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ customer.phone or '' }}" placeholder="+91 XXXXXXXXXX">
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="address" rows="3">{{ customer.address or '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="gst_number" class="form-label">GST Number (Optional)</label>
+                    <input type="text" class="form-control" id="gst_number" name="gst_number" 
+                           value="{{ customer.gst_number or '' }}" 
+                           placeholder="22AAAAA0000A1Z5" 
+                           pattern="^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
+                           title="Enter valid GSTIN (e.g., 22AAAAA0000A1Z5)">
+                    <div class="form-text">Format: 22AAAAA0000A1Z5 (15 characters)</div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary me-md-2">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Update Customer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any JavaScript for form validation here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation can be added here if needed
+    });
+</script>
+{% endblock %}

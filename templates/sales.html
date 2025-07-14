@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Sales - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Sales</h1>
+    <div class="d-flex gap-2">
+        <div class="dropdown me-2">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-sort-down"></i> Sort By
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                <li><a class="dropdown-item {% if current_sort == 'date_desc' %}active{% endif %}" href="?sort=date_desc">Date (Newest First)</a></li>
+                <li><a class="dropdown-item {% if current_sort == 'date_asc' %}active{% endif %}" href="?sort=date_asc">Date (Oldest First)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {% if current_sort == 'total_desc' %}active{% endif %}" href="?sort=total_desc">Total (High to Low)</a></li>
+                <li><a class="dropdown-item {% if current_sort == 'total_asc' %}active{% endif %}" href="?sort=total_asc">Total (Low to High)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item {% if current_sort == 'customer_asc' %}active{% endif %}" href="?sort=customer_asc">Customer (A-Z)</a></li>
+                <li><a class="dropdown-item {% if current_sort == 'customer_desc' %}active{% endif %}" href="?sort=customer_desc">Customer (Z-A)</a></li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a href="{{ url_for('sales', export='csv', sort=current_sort) }}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-arrow-down"></i> Export CSV
+            </a>
+            <a href="{{ url_for('new_sale') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> New Sale
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <!-- Date Range Filter -->
+        <form method="get" class="mb-4" id="dateFilterForm">
+            <input type="hidden" name="sort" value="{{ current_sort }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date }}" 
+                           min="{{ min_date }}" 
+                           max="{{ max_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ end_date }}" 
+                           min="{{ min_date }}" 
+                           max="{{ max_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    {% if start_date or end_date %}
+                    <a href="{{ url_for('sales') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+                {% if start_date and end_date %}
+                <div class="col-md-3 d-flex align-items-end justify-content-end">
+                    <span class="text-muted">
+                        Showing sales from {{ start_date }} to {{ end_date }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if sales %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Total (₹)</th>
+                        <th>Paid (₹)</th>
+                        <th>Balance (₹)</th>
+                        <th>Payment Method</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.id }}</td>
+                        <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ sale.customer.name }}</td>
+                        <td>₹{{ "%.2f"|format(sale.total_amount) }}</td>
+                        <td>₹{{ "%.2f"|format(sale.amount_paid) }}</td>
+                        <td class="{% if sale.balance > 0 %}text-danger fw-bold{% endif %}">
+                            ₹{{ "%.2f"|format(sale.balance) }}
+                        </td>
+                        <td>
+                            <span class="badge {% if sale.payment_method == 'cash' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ sale.payment_method|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_receipt', sale_id=sale.id) }}" class="btn btn-sm btn-outline-secondary" title="View and Print Invoice">
+                                <i class="bi bi-printer"></i> Print
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <h5 class="text-muted">No sales records found</h5>
+            <p class="text-muted">Create your first sale to get started</p>
+            <a href="{{ url_for('new_sale') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> New Sale
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .receipt-container, .receipt-container * {
+            visibility: visible;
+        }
+        .receipt-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set max date to today for end date picker
+        const today = new Date().toISOString().split('T')[0];
+        const endDateInput = document.getElementById('end_date');
+        const startDateInput = document.getElementById('start_date');
+        
+        if (endDateInput && !endDateInput.value) {
+            endDateInput.value = today;
+        }
+        
+        // Disable future dates
+        [startDateInput, endDateInput].forEach(input => {
+            if (input) {
+                input.max = today;
+            }
+        });
+        
+        // Validate date range
+        const form = document.getElementById('dateFilterForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    alert('Start date cannot be after end date');
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        // Update export button to include date range
+        const exportBtn = document.querySelector('a[href*="export=csv"]');
+        if (exportBtn && (startDateInput.value || endDateInput.value)) {
+            const url = new URL(exportBtn.href);
+            if (startDateInput.value) url.searchParams.set('start_date', startDateInput.value);
+            if (endDateInput.value) url.searchParams.set('end_date', endDateInput.value);
+            exportBtn.href = url.toString();
+        }
+    });
+</script>
+{% endblock %}
