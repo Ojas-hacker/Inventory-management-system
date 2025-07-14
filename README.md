@@ -24,7 +24,7 @@ A Flask-based web application for managing inventory, sales, and customer balanc
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Ojas-hacker/Inventory-management-system.git
    cd inventory-management
    ```
 
@@ -84,7 +84,7 @@ A Flask-based web application for managing inventory, sales, and customer balanc
    - Go to Balance Sheet
    - Click "Add Payment" for a customer with an outstanding balance
    - Enter the payment details and save
-   
+
 
 ## Security Notes
 
